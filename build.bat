@@ -1,6 +1,11 @@
 @echo off
 
-pyinstaller PortfolioKorrelationsanalyse.spec
+echo --- SYNCHRONISIERE UMGEBUNG MIT UV ---
+uv sync
+
+echo.
+echo --- ERSTELLE EXE MIT PYINSTALLER (VIA UV) ---
+uv run pyinstaller --noconfirm PortfolioKorrelationsanalyse.spec
 
 echo.
 echo --- AUFRÄUMEN ---
