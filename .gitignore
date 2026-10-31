@@ -208,3 +208,6 @@ __marimo__/
 
 # Data
 *.xml
+
+*.csv
+*.cache.pkl
