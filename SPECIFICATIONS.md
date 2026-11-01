@@ -124,6 +124,9 @@ $$\hat{P}_{i,t} = \frac{P_{i,t}}{P_{i,t_0}}$$
 - **Single-File Architecture**: Self-contained UTF-8 `.html` document with embedded CSS and JSON time-series data.
 - **KPI Summary Cards**: Base security performance, sector, `Δ ATH 1J / Δ SMA200`, and number of trading days.
 - **Interactive HTML5 Canvas Chart**: Clicking any row in the Top, Flop, or Neutral tables dynamically plots the normalized price comparison against the base security.
-- **Live Client-Side Filter**: Instant text search filtering table rows by security name, ticker, or sector.
+- **Column Sorting**: Clicking any column header (`#`, `Wertpapier`, `Sektor`, `Korrelation`, `Perf`, `Δ ATH 1J`, `Δ SMA20`, `Δ SMA200`) toggles ascending/descending sorting (`▲` / `▼`), properly parsing German percentage strings and placing missing values (`—`) at the bottom.
+- **Per-Column & Global Filtering**:
+  - Dedicated filter row per table: text search for `Wertpapier`, dropdown `<select>` for `Sektor`, and numeric expression filters (`>`, `>=`, `<`, `<=`, `=`, e.g. `>0` or `<-15`) for `Korrelation`, `Perf`, `Δ ATH 1J`, `Δ SMA20`, and `Δ SMA200`.
+  - Global search bar across all tables plus a one-click **"Filter zurücksetzen"** reset button.
 - **Print Stylesheet**: `@media print` rules for clean PDF/paper printing.
 

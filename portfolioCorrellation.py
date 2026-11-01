@@ -521,40 +521,69 @@ def generiere_html_report(report_daten, datei_pfad):
         </div>
         """
 
-    def baue_tabelle(zeilen, leer_hinweis):
+    def parse_prozent_wert(val_str):
+        """Extrahiert einen Float-Wert aus deutschen Prozent-Strings wie '-27,75 %' für die Sortierung."""
+        if val_str is None:
+            return ""
+        s = str(val_str).replace("%", "").replace(" ", "").replace(".", "").replace(",", ".").strip()
+        try:
+            return f"{float(s):.4f}"
+        except ValueError:
+            return ""
+
+    def baue_tabelle(zeilen, leer_hinweis, tabellen_id):
         if not zeilen:
             return f'<p class="empty-msg">{esc(leer_hinweis)}</p>'
+        sektoren_in_tabelle = sorted({r["sektor"] for r in zeilen if r.get("sektor") and r["sektor"] != "—"})
+        sektor_optionen = '<option value="">Alle</option>' + "".join(
+            f'<option value="{esc(s.lower())}">{esc(s)}</option>' for s in sektoren_in_tabelle
+        )
+
         trs = []
         for idx, r in enumerate(zeilen, start=1):
             t_attr = esc(r["ticker"])
+            perf_sort = f"{r['perf']:.4f}" if r["perf"] is not None else ""
+            ath_sort = parse_prozent_wert(r["ath_1y"])
+            sma20_sort = parse_prozent_wert(r["sma20"])
+            sma200_sort = parse_prozent_wert(r["sma200"])
             trs.append(f"""
             <tr class="clickable-row" onclick="selectSecurity('{t_attr}')" data-ticker="{t_attr}">
-                <td class="rank-col">{idx}</td>
-                <td>
+                <td class="rank-col" data-sort="{idx}">{idx}</td>
+                <td data-sort="{esc(r['name'].lower())}">
                     <div class="sec-name">{esc(r['name'])}</div>
                     <div class="sec-ticker">{esc(r['ticker'])}</div>
                 </td>
-                <td><span class="sector-pill">{esc(r['sektor'])}</span></td>
-                <td>{fmt_korr_bar(r['korr'])}</td>
-                <td class="num-col">{fmt_perf_badge(r['perf'])}</td>
-                <td class="num-col">{fmt_delta_cell(r['ath_1y'])}</td>
-                <td class="num-col">{fmt_delta_cell(r['sma20'])}</td>
-                <td class="num-col">{fmt_delta_cell(r['sma200'])}</td>
+                <td data-sort="{esc(r['sektor'].lower())}"><span class="sector-pill">{esc(r['sektor'])}</span></td>
+                <td data-sort="{r['korr']:.6f}">{fmt_korr_bar(r['korr'])}</td>
+                <td class="num-col" data-sort="{perf_sort}">{fmt_perf_badge(r['perf'])}</td>
+                <td class="num-col" data-sort="{ath_sort}">{fmt_delta_cell(r['ath_1y'])}</td>
+                <td class="num-col" data-sort="{sma20_sort}">{fmt_delta_cell(r['sma20'])}</td>
+                <td class="num-col" data-sort="{sma200_sort}">{fmt_delta_cell(r['sma200'])}</td>
             </tr>
             """)
         return f"""
         <div class="table-wrap">
-            <table>
+            <table id="{tabellen_id}" class="data-table">
                 <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Wertpapier</th>
-                        <th>Sektor</th>
-                        <th>Korrelation</th>
-                        <th class="num-col">Perf ({esc(report_daten['zeitraum'])})</th>
-                        <th class="num-col">Δ ATH 1J</th>
-                        <th class="num-col">Δ SMA20</th>
-                        <th class="num-col">Δ SMA200</th>
+                    <tr class="header-row">
+                        <th class="sortable" onclick="sortTable('{tabellen_id}', 0, 'num')"># <span class="sort-icon">⇅</span></th>
+                        <th class="sortable" onclick="sortTable('{tabellen_id}', 1, 'str')">Wertpapier <span class="sort-icon">⇅</span></th>
+                        <th class="sortable" onclick="sortTable('{tabellen_id}', 2, 'str')">Sektor <span class="sort-icon">⇅</span></th>
+                        <th class="sortable" onclick="sortTable('{tabellen_id}', 3, 'num')">Korrelation <span class="sort-icon">⇅</span></th>
+                        <th class="num-col sortable" onclick="sortTable('{tabellen_id}', 4, 'num')">Perf ({esc(report_daten['zeitraum'])}) <span class="sort-icon">⇅</span></th>
+                        <th class="num-col sortable" onclick="sortTable('{tabellen_id}', 5, 'num')">Δ ATH 1J <span class="sort-icon">⇅</span></th>
+                        <th class="num-col sortable" onclick="sortTable('{tabellen_id}', 6, 'num')">Δ SMA20 <span class="sort-icon">⇅</span></th>
+                        <th class="num-col sortable" onclick="sortTable('{tabellen_id}', 7, 'num')">Δ SMA200 <span class="sort-icon">⇅</span></th>
+                    </tr>
+                    <tr class="col-filter-row">
+                        <th></th>
+                        <th><input type="text" class="col-filter" data-col="1" data-type="str" placeholder="Name/Ticker..." oninput="applyAllFilters('{tabellen_id}')"></th>
+                        <th><select class="col-filter" data-col="2" data-type="str" onchange="applyAllFilters('{tabellen_id}')">{sektor_optionen}</select></th>
+                        <th><input type="text" class="col-filter num-filter" data-col="3" data-type="num" placeholder="z.B. <0" oninput="applyAllFilters('{tabellen_id}')"></th>
+                        <th><input type="text" class="col-filter num-filter" data-col="4" data-type="num" placeholder="z.B. >0" oninput="applyAllFilters('{tabellen_id}')"></th>
+                        <th><input type="text" class="col-filter num-filter" data-col="5" data-type="num" placeholder="z.B. >-15" oninput="applyAllFilters('{tabellen_id}')"></th>
+                        <th><input type="text" class="col-filter num-filter" data-col="6" data-type="num" placeholder="z.B. >0" oninput="applyAllFilters('{tabellen_id}')"></th>
+                        <th><input type="text" class="col-filter num-filter" data-col="7" data-type="num" placeholder="z.B. >0" oninput="applyAllFilters('{tabellen_id}')"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -693,7 +722,33 @@ def generiere_html_report(report_daten, datei_pfad):
         letter-spacing: 0.04em;
         padding: 10px 8px;
         border-bottom: 1px solid var(--border);
+        user-select: none;
     }}
+    th.sortable {{ cursor: pointer; transition: color 0.15s, background 0.15s; white-space: nowrap; }}
+    th.sortable:hover {{ color: var(--accent); background: rgba(56, 189, 248, 0.06); }}
+    th.sorted-asc, th.sorted-desc {{ color: var(--accent); }}
+    .sort-icon {{ font-size: 0.72rem; opacity: 0.55; margin-left: 3px; }}
+    th.sorted-asc .sort-icon, th.sorted-desc .sort-icon {{ opacity: 1; color: var(--accent); }}
+    tr.col-filter-row th {{
+        padding: 5px 6px 8px;
+        background: rgba(15, 23, 42, 0.45);
+        border-bottom: 1px solid var(--border);
+    }}
+    .col-filter {{
+        width: 100%;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 4px 6px;
+        border-radius: 5px;
+        font-size: 0.75rem;
+        font-family: inherit;
+    }}
+    .col-filter:focus {{
+        outline: none;
+        border-color: var(--accent);
+    }}
+    .num-filter {{ text-align: right; min-width: 66px; }}
     td {{
         padding: 10px 8px;
         border-bottom: 1px solid rgba(51, 65, 85, 0.55);
@@ -771,8 +826,9 @@ def generiere_html_report(report_daten, datei_pfad):
             <p>Zeitraum: <strong>{esc(report_daten['zeitraum'])}</strong> ({esc(report_daten['start_datum'])} bis {esc(report_daten['end_datum'])}) &bull; Methode: {esc(report_daten['methode_label'])} &bull; Erstellt am {erstellt_am}</p>
             <div class="filter-bar">{filter_badges}</div>
         </div>
-        <div>
-            <input type="text" id="tableSearch" class="search-box" placeholder="Wertpapier oder Sektor filtern..." oninput="filterTables(this.value)">
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="tableSearch" class="search-box" placeholder="Globaler Filter (alle Spalten)..." oninput="filterTables()">
+            <button onclick="resetAllFilters()" style="background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 7px 11px; border-radius: 8px; cursor: pointer; font-size: 0.82rem;">Filter zurücksetzen</button>
         </div>
     </header>
 
@@ -806,21 +862,21 @@ def generiere_html_report(report_daten, datei_pfad):
     <div class="grid-2col">
         <div class="section-card">
             <div class="section-title">🛡️ Top {report_daten['anzahl']} Niedrigste / Negative Korrelationen</div>
-            <div class="section-sub">Hohes Diversifikationspotenzial gegenüber {esc(report_daten['basis_name'])}</div>
-            {baue_tabelle(report_daten['flop_rows'], 'Keine Werte gefunden.')}
+            <div class="section-sub">Hohes Diversifikationspotenzial gegenüber {esc(report_daten['basis_name'])} (Klick auf Spaltenkopf sortiert, Operatoren wie <code>&gt;0</code> oder <code>&lt;-10</code> filtern Zahlen)</div>
+            {baue_tabelle(report_daten['flop_rows'], 'Keine Werte gefunden.', 'tbl-flop')}
         </div>
 
         <div class="section-card">
             <div class="section-title">🚀 Top {report_daten['anzahl']} Höchste Korrelationen</div>
-            <div class="section-sub">Gleichlaufende Entwicklung (niedrige Diversifikation)</div>
-            {baue_tabelle(report_daten['top_rows'], 'Keine Werte gefunden.')}
+            <div class="section-sub">Gleichlaufende Entwicklung / niedrige Diversifikation (Klick auf Spaltenkopf sortiert)</div>
+            {baue_tabelle(report_daten['top_rows'], 'Keine Werte gefunden.', 'tbl-top')}
         </div>
     </div>
 
     <div class="section-card">
         <div class="section-title">⚖️ Neutrale Korrelationen (-0.15 bis +0.15)</div>
         <div class="section-sub">Unabhängige Kursentwicklung im gewählten Zeitraum ({len(report_daten['neutral_rows'])} Treffer)</div>
-        {baue_tabelle(report_daten['neutral_rows'], 'Keine Werte mit neutraler Korrelation im Zeitraum gefunden.')}
+        {baue_tabelle(report_daten['neutral_rows'], 'Keine Werte mit neutraler Korrelation im Zeitraum gefunden.', 'tbl-neutral')}
     </div>
 </div>
 
@@ -938,12 +994,127 @@ function drawChart(ticker) {{
     ctx.fillText(`● Auswahl: ${{entry.name}} (${{entry.sel_norm[entry.sel_norm.length - 1].toFixed(2)}}x)`, pad.left + 310, pad.top + 14);
 }}
 
-function filterTables(query) {{
-    const q = query.trim().toLowerCase();
-    document.querySelectorAll('tbody tr').forEach(tr => {{
-        const text = tr.innerText.toLowerCase();
-        tr.style.display = (!q || text.includes(q)) ? '' : 'none';
+function matchNumericExpr(cellSortVal, rawExpr) {{
+    const expr = rawExpr.trim().replace(',', '.');
+    if (!expr) return true;
+    const num = parseFloat(cellSortVal);
+    const m = expr.match(/^(>=|<=|>|<|=)\\s*(-?\\d+(?:\\.\\d+)?)$/);
+    if (m) {{
+        if (isNaN(num)) return false;
+        const op = m[1];
+        const target = parseFloat(m[2]);
+        if (op === '>') return num > target;
+        if (op === '>=') return num >= target;
+        if (op === '<') return num < target;
+        if (op === '<=') return num <= target;
+        if (op === '=') return Math.abs(num - target) < 1e-6;
+    }}
+    return String(cellSortVal).toLowerCase().includes(expr.toLowerCase());
+}}
+
+function applyAllFilters(tableId) {{
+    const globalQuery = (document.getElementById('tableSearch')?.value || '').trim().toLowerCase();
+    const tables = tableId
+        ? [document.getElementById(tableId)]
+        : Array.from(document.querySelectorAll('table.data-table'));
+
+    tables.forEach(tbl => {{
+        if (!tbl) return;
+        const filters = Array.from(tbl.querySelectorAll('.col-filter'));
+        const rows = Array.from(tbl.querySelectorAll('tbody tr'));
+
+        rows.forEach(tr => {{
+            let visible = true;
+            if (globalQuery && !tr.innerText.toLowerCase().includes(globalQuery)) {{
+                visible = false;
+            }}
+            if (visible) {{
+                for (const f of filters) {{
+                    const val = f.value.trim();
+                    if (!val) continue;
+                    const colIdx = parseInt(f.getAttribute('data-col'), 10);
+                    const colType = f.getAttribute('data-type');
+                    const td = tr.children[colIdx];
+                    if (!td) continue;
+                    const sortAttr = td.getAttribute('data-sort') || '';
+                    const cellText = td.innerText.toLowerCase();
+
+                    if (colType === 'num') {{
+                        if (!matchNumericExpr(sortAttr, val) && !cellText.includes(val.toLowerCase())) {{
+                            visible = false;
+                            break;
+                        }}
+                    }} else {{
+                        if (f.tagName === 'SELECT') {{
+                            if (sortAttr !== val.toLowerCase()) {{
+                                visible = false;
+                                break;
+                            }}
+                        }} else if (!cellText.includes(val.toLowerCase())) {{
+                            visible = false;
+                            break;
+                        }}
+                    }}
+                }}
+            }}
+            tr.style.display = visible ? '' : 'none';
+        }});
     }});
+}}
+
+function filterTables() {{
+    applyAllFilters();
+}}
+
+function resetAllFilters() {{
+    const gs = document.getElementById('tableSearch');
+    if (gs) gs.value = '';
+    document.querySelectorAll('.col-filter').forEach(el => {{ el.value = ''; }});
+    applyAllFilters();
+}}
+
+function sortTable(tableId, colIdx, type) {{
+    const tbl = document.getElementById(tableId);
+    if (!tbl) return;
+    const tbody = tbl.querySelector('tbody');
+    const headers = tbl.querySelectorAll('tr.header-row th');
+    const th = headers[colIdx];
+
+    const currentAsc = th.classList.contains('sorted-asc');
+    const nextAsc = !currentAsc;
+
+    headers.forEach(h => {{
+        h.classList.remove('sorted-asc', 'sorted-desc');
+        const icon = h.querySelector('.sort-icon');
+        if (icon) icon.textContent = '⇅';
+    }});
+
+    th.classList.add(nextAsc ? 'sorted-asc' : 'sorted-desc');
+    const activeIcon = th.querySelector('.sort-icon');
+    if (activeIcon) activeIcon.textContent = nextAsc ? '▲' : '▼';
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    rows.sort((a, b) => {{
+        const rawA = a.children[colIdx]?.getAttribute('data-sort') ?? '';
+        const rawB = b.children[colIdx]?.getAttribute('data-sort') ?? '';
+
+        if (type === 'num') {{
+            const numA = parseFloat(rawA);
+            const numB = parseFloat(rawB);
+            const emptyA = isNaN(numA);
+            const emptyB = isNaN(numB);
+            if (emptyA && emptyB) return 0;
+            if (emptyA) return 1; // Leere Werte ("—") immer ans Ende
+            if (emptyB) return -1;
+            return nextAsc ? (numA - numB) : (numB - numA);
+        }} else {{
+            return nextAsc
+                ? rawA.localeCompare(rawB, 'de')
+                : rawB.localeCompare(rawA, 'de');
+        }}
+    }});
+
+    rows.forEach(r => tbody.appendChild(r));
 }}
 
 window.addEventListener('resize', () => {{
