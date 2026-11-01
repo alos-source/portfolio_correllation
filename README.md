@@ -1,53 +1,67 @@
 # Portfolio Correlation Analysis
 
-A desktop application (`tkinter` + `pandas` + `matplotlib`) for analyzing asset correlations and portfolio diversification using data exported from **[Portfolio Performance](https://www.portfolio-performance.info/)**.
+Desktop application (`tkinter` + `pandas` + `matplotlib`) for analyzing asset correlations and portfolio diversification using historical price data and watchlist metadata exported from **[Portfolio Performance](https://www.portfolio-performance.info/)**.
 
-## Key Features
+---
 
-- **Fast XML Price Caching**: Parses historical daily prices from Portfolio Performance XML exports (`pf_daten.xml`) and automatically caches them locally (`*.cache.pkl`), reducing reload times from ~17 seconds to under **0.1 seconds**.
-- **CSV Universe & Metadata Integration**: Optionally loads a Portfolio Performance watchlist/securities CSV export to:
-  - Filter the analysis down to your curated investment universe.
-  - Filter candidates by **Sector** (`Sektor`).
-  - Enrich results with technical metrics (`Δ ATH 1 Jahr %`, `Δ zu SMA20`, `Δ zu SMA200`).
-- **Flexible Timeframes & Methods**:
-  - Time horizons: `1M`, `3M`, `6M`, `YTD`, `1Y`, `2Y`, `3Y`, `5Y`, `10Y`, and `Gesamt` (All).
-  - Correlation methods: **Daily Returns (`pct_change`)** or **Absolute Price Levels**.
-  - Optional filter to include only assets with positive performance over the selected period.
-- **Interactive Charts & Standalone HTML Report**:
-  - Click any security in the Top or Flop lists to compare normalized price performance (`1.00` at start).
-  - Export a standalone, interactive **HTML Dashboard Report** with KPI cards, color-coded correlation bars, live search, and an embedded HTML5 canvas comparison chart.
+## Repository Overview
 
-## Prerequisites
+| File | Description |
+| :--- | :--- |
+| `portfolioCorrellation.py` | Main application: XML/Cache ingestion, CSV metadata matching, correlation engine, Tkinter GUI, and standalone HTML report generator. |
+| `build_docs.py` | Build helper script that compiles `USER_GUIDE.md` and `DISCLAIMER.md` into `dist/README.pdf`. |
+| `pyproject.toml` / `uv.lock` | Project metadata, runtime dependencies (`pandas`, `matplotlib`, `python-dateutil`), and `dev` tooling (`pyinstaller`, `fpdf2`, `markdown`) managed via `uv`. |
+| `PortfolioKorrelationsanalyse.spec` | PyInstaller specification for building the standalone Windows executable (`dist/PortfolioKorrelationsanalyse.exe`). |
+| `build.bat` | Automated build script (`uv sync` $\rightarrow$ `pyinstaller` $\rightarrow$ `README.pdf` generation $\rightarrow$ cleanup). |
+| `SPECIFICATIONS.md` | Technical, architectural, and mathematical specifications. |
+| `USER_GUIDE.md` | End-user manual (compiled automatically into `dist/README.pdf` during the build). |
+| `DISCLAIMER.md` | Legal disclaimer (German & English) for both code and generated data/reports. |
 
-- [uv](https://docs.astral.sh/uv/) (Python package and environment manager)
+---
 
-## Getting Started
+## Developer Setup (`uv`)
+
+### Prerequisites
+- Python $\ge 3.11$
+- [uv](https://docs.astral.sh/uv/) package and environment manager
+
+### Install Dependencies & Run from Source
 
 ```powershell
-# Install and sync dependencies into .venv
+# Create .venv and install locked dependencies
 uv sync
 
-# Run the application
+# Launch the GUI application
 uv run python portfolioCorrellation.py
+
+# Run quick CLI self-test
+uv run python portfolioCorrellation.py --self-test
 ```
 
-## Building the Standalone Executable (`PyInstaller`)
+---
 
-Run the included batch script:
+## Building the Release Package (`dist/`)
+
+Run the batch script to build the standalone executable and generate the end-user PDF manual (`dist/README.pdf` from `USER_GUIDE.md` + `DISCLAIMER.md`):
 
 ```powershell
 .\build.bat
 ```
 
-Or invoke PyInstaller directly via `uv`:
+Or run the individual build steps manually:
 
 ```powershell
+# 1. Build standalone Windows executable
 uv run pyinstaller --noconfirm PortfolioKorrelationsanalyse.spec
+
+# 2. Generate end-user PDF documentation (dist/README.pdf)
+uv run python build_docs.py
 ```
 
-The standalone Windows executable will be generated at `dist/PortfolioKorrelationsanalyse.exe`.
+---
 
-## Documentation
+## Documentation & Legal
 
-- See [SPECIFICATIONS.md](SPECIFICATIONS.md) for detailed functional, mathematical, and technical specifications.
-- See [DISCLAIMER.md](DISCLAIMER.md) for the legal disclaimer (German & English) regarding the software and generated reports.
+- **Technical Specifications**: [SPECIFICATIONS.md](SPECIFICATIONS.md)
+- **End-User Guide (German)**: [USER_GUIDE.md](USER_GUIDE.md)
+- **Disclaimer**: [DISCLAIMER.md](DISCLAIMER.md)

@@ -8,6 +8,10 @@ echo --- ERSTELLE EXE MIT PYINSTALLER (VIA UV) ---
 uv run pyinstaller --noconfirm PortfolioKorrelationsanalyse.spec
 
 echo.
+echo --- ERSTELLE README.PDF IM DIST-ORDNER ---
+uv run python build_docs.py
+
+echo.
 echo --- AUFRÄUMEN ---
 
 REM Löscht den temporären Build-Ordner
@@ -21,5 +25,5 @@ echo XML- und Cache-Datei in den 'dist' Ordner kopiert.
 
 echo.
 echo --- FERTIG ---
-echo Die ausführbare Datei befindet sich im Ordner "dist" und heißt "PortfolioKorrelationsanalyse.exe".
+echo Die ausführbare Datei und README.pdf befinden sich im Ordner "dist".
 pause
