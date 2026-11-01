@@ -27,9 +27,31 @@ except ImportError:
 
 # --- KONFIGURATION ---
 XML_DATEI_PFAD = 'pf_daten.xml'  # Standard-Pfad zu Ihrer Portfolio Performance XML-Datei
+SETTINGS_DATEI_PFAD = 'settings.json'
 CACHE_VERSION = 1
 GITHUB_REPO_URL = "https://github.com/alos-source/portfolio_correllation"
 # ---------------------
+
+
+def lade_gui_einstellungen(pfad=SETTINGS_DATEI_PFAD):
+    """Lädt die zuletzt gespeicherten GUI-Einstellungen aus einer JSON-Datei."""
+    if not os.path.exists(pfad):
+        return {}
+    try:
+        with open(pfad, "r", encoding="utf-8") as f:
+            daten = json.load(f)
+            return daten if isinstance(daten, dict) else {}
+    except Exception:
+        return {}
+
+
+def speichere_gui_einstellungen(einstellungen, pfad=SETTINGS_DATEI_PFAD):
+    """Speichert die aktuellen GUI-Einstellungen in einer JSON-Datei."""
+    try:
+        with open(pfad, "w", encoding="utf-8") as f:
+            json.dump(einstellungen, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
 
 
 def finde_standard_csv():
@@ -1304,9 +1326,11 @@ def filter_positive_performance(df, tickers):
 
 def starte_gui():
     """Startet die Tkinter-GUI mit XML/Cache-Lader sowie CSV-Metadaten- und Sektor-Filterung."""
+    gespeicherte_settings = lade_gui_einstellungen()
+
     root = tk.Tk()
     root.title(f"Portfolio Korrelationsanalyse – v{VERSION} (Build #{BUILD_NUMBER})")
-    root.geometry("1040x740")
+    root.geometry(gespeicherte_settings.get("window_geometry", "1040x740"))
     root.minsize(860, 600)
 
     # App-State
@@ -1317,13 +1341,16 @@ def starte_gui():
         "csv_metadata": {},
         "alle_namen_referenz": [],
         "letzter_report": None,
+        "gespeicherter_basiswert": gespeicherte_settings.get("basiswert", ""),
+        "gespeicherter_sektor": gespeicherte_settings.get("sektor", "Alle Sektoren"),
+        "gespeicherter_csv_filter": gespeicherte_settings.get("nur_csv_werte", None),
     }
 
     # --- Zeile 0: XML / Cache Pfad ---
     tk.Label(root, text="Portfolio-XML / Cache:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
     entry_xml = tk.Entry(root, width=50)
     entry_xml.grid(row=0, column=1, padx=5, pady=5, sticky="we")
-    entry_xml.insert(0, XML_DATEI_PFAD)
+    entry_xml.insert(0, gespeicherte_settings.get("xml_pfad", XML_DATEI_PFAD))
 
     def waehle_xml_datei():
         pfad = filedialog.askopenfilename(
@@ -1341,9 +1368,11 @@ def starte_gui():
     tk.Label(root, text="CSV Anlageuniversum:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
     entry_csv = tk.Entry(root, width=50)
     entry_csv.grid(row=1, column=1, padx=5, pady=5, sticky="we")
-    standard_csv = finde_standard_csv()
-    if standard_csv:
-        entry_csv.insert(0, standard_csv)
+    initial_csv = gespeicherte_settings.get("csv_pfad")
+    if initial_csv is None:
+        initial_csv = finde_standard_csv()
+    if initial_csv:
+        entry_csv.insert(0, initial_csv)
 
     def waehle_csv_datei():
         pfad = filedialog.askopenfilename(
@@ -1363,15 +1392,35 @@ def starte_gui():
     lbl_status = tk.Label(root, text="Bitte 'Daten laden' klicken.", fg="gray")
     lbl_status.grid(row=2, column=0, columnspan=4, sticky="w", padx=5, pady=2)
 
+    def sichere_aktuelle_einstellungen():
+        """Speichert alle aktuellen Eingabefelder in settings.json."""
+        basis_aktuell = combo_basis.get().strip() or state.get("gespeicherter_basiswert", "")
+        sektor_aktuell = combo_sektor.get().strip() or state.get("gespeicherter_sektor", "Alle Sektoren")
+        daten = {
+            "xml_pfad": entry_xml.get().strip(),
+            "csv_pfad": entry_csv.get().strip(),
+            "basiswert": basis_aktuell,
+            "zeitraum": combo_zeitraum.get(),
+            "korrelationsbasis": combo_methode.get(),
+            "anzahl": entry_anzahl.get().strip(),
+            "sektor": sektor_aktuell,
+            "nur_positive_perf": bool(filter_var.get()),
+            "nur_csv_werte": bool(csv_filter_var.get()),
+            "window_geometry": root.geometry(),
+        }
+        speichere_gui_einstellungen(daten)
+
     def aktualisiere_basiswert_liste():
-        """Aktualisiert die Auswahlliste für den Basiswert."""
+        """Aktualisiert die Auswahlliste für den Basiswert und stellt ggf. den gespeicherten Wert wieder her."""
         if state["df_kurse_alle"] is None:
             return
         namen = sorted(state["name_to_ticker_map"].keys())
         state["alle_namen_referenz"] = namen
-        aktuelle_auswahl = combo_basis.get()
+        aktuelle_auswahl = combo_basis.get().strip() or state.get("gespeicherter_basiswert", "")
         combo_basis.config(values=namen, state="normal")
-        if aktuelle_auswahl not in namen:
+        if aktuelle_auswahl in namen:
+            combo_basis.set(aktuelle_auswahl)
+        else:
             combo_basis.set("")
 
     def aktualisiere_csv_daten(zeige_fehler=False):
@@ -1393,10 +1442,16 @@ def starte_gui():
             )
             state["csv_metadata"] = meta
             sektoren = sorted({m["sektor"] for m in meta.values() if m.get("sektor")})
-            combo_sektor.config(values=["Alle Sektoren"] + sektoren, state="readonly")
-            combo_sektor.set("Alle Sektoren")
+            alle_sektoren = ["Alle Sektoren"] + sektoren
+            combo_sektor.config(values=alle_sektoren, state="readonly")
+            wunsch_sektor = combo_sektor.get().strip() or state.get("gespeicherter_sektor", "Alle Sektoren")
+            combo_sektor.set(wunsch_sektor if wunsch_sektor in alle_sektoren else "Alle Sektoren")
             chk_csv_filter.config(state="normal")
-            csv_filter_var.set(True)
+            if state["gespeicherter_csv_filter"] is not None:
+                csv_filter_var.set(bool(state["gespeicherter_csv_filter"]))
+                state["gespeicherter_csv_filter"] = None
+            else:
+                csv_filter_var.set(True)
             aktualisiere_basiswert_liste()
             return True
         except Exception as e:
@@ -1448,6 +1503,7 @@ def starte_gui():
             text=f"Geladen aus {quelle_str}: {df_kurse_alle.shape[1]} Wertpapiere{csv_str}",
             fg="green",
         )
+        sichere_aktuelle_einstellungen()
 
     btn_laden = tk.Button(root, text="Daten laden", command=lambda: lade_daten(False))
     btn_laden.grid(row=0, column=3, padx=5, pady=5)
@@ -1459,6 +1515,8 @@ def starte_gui():
     tk.Label(root, text="Basiswert:").grid(row=3, column=0, sticky="w", padx=5, pady=5)
     combo_basis = ttk.Combobox(root, values=[], width=45, state="disabled")
     combo_basis.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+    if state["gespeicherter_basiswert"]:
+        combo_basis.set(state["gespeicherter_basiswert"])
     combo_basis.bind(
         '<KeyRelease>',
         lambda event: type_ahead_search(event, combo_basis, state["alle_namen_referenz"]),
@@ -1472,34 +1530,37 @@ def starte_gui():
     zeitraum_werte = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', '10Y', 'Gesamt']
     combo_zeitraum = ttk.Combobox(rahmen_zeit_methode, values=zeitraum_werte, width=10, state="disabled")
     combo_zeitraum.pack(side="left", padx=(0, 15))
-    combo_zeitraum.set('1Y')
+    gespeicherter_zeitraum = gespeicherte_settings.get("zeitraum", "1Y")
+    combo_zeitraum.set(gespeicherter_zeitraum if gespeicherter_zeitraum in zeitraum_werte else '1Y')
 
     tk.Label(rahmen_zeit_methode, text="Korrelationsbasis:").pack(side="left", padx=(0, 5))
     methode_werte = ['Tagesrenditen (pct_change)', 'Kursniveau (absolut)']
     combo_methode = ttk.Combobox(rahmen_zeit_methode, values=methode_werte, width=26, state="disabled")
     combo_methode.pack(side="left")
-    combo_methode.set('Tagesrenditen (pct_change)')
+    gespeicherte_methode = gespeicherte_settings.get("korrelationsbasis", "Tagesrenditen (pct_change)")
+    combo_methode.set(gespeicherte_methode if gespeicherte_methode in methode_werte else 'Tagesrenditen (pct_change)')
 
     # --- Zeile 5: Anzahl Ergebnisse & Sektor-Filter ---
     tk.Label(root, text="Anzahl je Liste:").grid(row=5, column=0, sticky="w", padx=5, pady=5)
     rahmen_anzahl_sektor = tk.Frame(root)
     rahmen_anzahl_sektor.grid(row=5, column=1, columnspan=3, sticky="w", padx=5, pady=5)
 
-    entry_anzahl = tk.Entry(rahmen_anzahl_sektor, width=10, state="disabled")
+    entry_anzahl = tk.Entry(rahmen_anzahl_sektor, width=10)
     entry_anzahl.pack(side="left", padx=(0, 15))
-    entry_anzahl.insert(0, "10")
+    entry_anzahl.insert(0, str(gespeicherte_settings.get("anzahl", "10")))
+    entry_anzahl.config(state="disabled")
 
     tk.Label(rahmen_anzahl_sektor, text="Sektor-Filter (CSV):").pack(side="left", padx=(0, 5))
     combo_sektor = ttk.Combobox(rahmen_anzahl_sektor, values=["Alle Sektoren"], width=28, state="disabled")
     combo_sektor.pack(side="left")
-    combo_sektor.set("Alle Sektoren")
+    combo_sektor.set(state["gespeicherter_sektor"] or "Alle Sektoren")
 
     # --- Zeile 6: Filter-Checkboxen & Analyse-Button ---
-    filter_var = tk.BooleanVar(value=False)
+    filter_var = tk.BooleanVar(value=bool(gespeicherte_settings.get("nur_positive_perf", False)))
     chk_filter = tk.Checkbutton(root, text="Nur Werte mit positiver Performance", variable=filter_var)
     chk_filter.grid(row=6, column=1, padx=5, pady=2, sticky="w")
 
-    csv_filter_var = tk.BooleanVar(value=False)
+    csv_filter_var = tk.BooleanVar(value=bool(gespeicherte_settings.get("nur_csv_werte", False)))
     chk_csv_filter = tk.Checkbutton(
         root,
         text="Nur Werte aus CSV-Anlageuniversum",
@@ -1583,6 +1644,8 @@ def starte_gui():
         else:
             state["letzter_report"] = None
             btn_export_html.config(state="disabled")
+
+        sichere_aktuelle_einstellungen()
 
     def exportiere_html():
         report = state.get("letzter_report")
@@ -1703,6 +1766,12 @@ def starte_gui():
     root.grid_columnconfigure(1, weight=1)
     root.grid_rowconfigure(7, weight=1)
     root.grid_rowconfigure(8, weight=1)
+
+    def beim_schliessen():
+        sichere_aktuelle_einstellungen()
+        root.destroy()
+
+    root.protocol("WM_DELETE_WINDOW", beim_schliessen)
 
     root.mainloop()
 
