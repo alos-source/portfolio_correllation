@@ -878,6 +878,11 @@ def generiere_html_report(report_daten, datei_pfad):
         <div class="section-sub">Unabhängige Kursentwicklung im gewählten Zeitraum ({len(report_daten['neutral_rows'])} Treffer)</div>
         {baue_tabelle(report_daten['neutral_rows'], 'Keine Werte mit neutraler Korrelation im Zeitraum gefunden.', 'tbl-neutral')}
     </div>
+
+    <footer style="margin-top: 32px; padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px; background: rgba(30, 41, 59, 0.55); color: var(--muted); font-size: 0.78rem; line-height: 1.55;">
+        <strong style="color: var(--text); display: block; margin-bottom: 6px;">⚖️ Wichtiger Hinweis / Haftungsausschluss (Disclaimer)</strong>
+        Dieser Bericht sowie alle darin enthaltenen Daten, Kennzahlen und Charts dienen ausschließlich allgemeinen Informations-, Bildungs- und privaten Analysezwecken. Sie stellen <strong>keine Anlageberatung, keine Finanzanalyse und keine Empfehlung oder Aufforderung zum Kauf, Halten oder Verkauf von Wertpapieren</strong> dar. Alle Auswertungen basieren auf historischen Vergangenheitsdaten aus Drittquellen; vergangene Wertentwicklungen und historische Korrelationen sind kein verlässlicher Indikator für zukünftige Entwicklungen (insbesondere in Marktstressphasen können sich Korrelationen stark verändern). Für die Richtigkeit, Vollständigkeit oder Aktualität der Daten und Berechnungen wird keine Gewähr übernommen. Jede Anlageentscheidung erfolgt auf eigenes Risiko und in alleiniger Verantwortung des Lesers; eine Haftung für finanzielle Verluste ist ausgeschlossen. Der Ersteller hält möglicherweise selbst Positionen in den genannten Wertpapieren.
+    </footer>
 </div>
 
 <script>

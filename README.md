@@ -50,3 +50,4 @@ The standalone Windows executable will be generated at `dist/PortfolioKorrelatio
 ## Documentation
 
 - See [SPECIFICATIONS.md](SPECIFICATIONS.md) for detailed functional, mathematical, and technical specifications.
+- See [DISCLAIMER.md](DISCLAIMER.md) for the legal disclaimer (German & English) regarding the software and generated reports.
