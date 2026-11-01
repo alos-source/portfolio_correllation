@@ -1,11 +1,61 @@
 import os
 import re
+import subprocess
+from datetime import datetime
 from fpdf import FPDF
 from fpdf.fonts import FontFace
 import markdown
 
 
-def erstelle_readme_pdf(ziel_pfad=os.path.join("dist", "README.pdf")):
+def aktualisiere_build_info(pfad="build_info.py"):
+    """Erhöht automatisch die Build-Nummer, liest Version aus pyproject.toml sowie den aktuellen Git-Commit."""
+    version = "0.1.0"
+    if os.path.exists("pyproject.toml"):
+        with open("pyproject.toml", "r", encoding="utf-8") as f:
+            m_ver = re.search(r'^version\s*=\s*"([^"]+)"', f.read(), flags=re.MULTILINE)
+            if m_ver:
+                version = m_ver.group(1)
+
+    bisherige_nummer = 0
+    if os.path.exists(pfad):
+        with open(pfad, "r", encoding="utf-8") as f:
+            m_num = re.search(r"^BUILD_NUMBER\s*=\s*(\d+)", f.read(), flags=re.MULTILINE)
+            if m_num:
+                bisherige_nummer = int(m_num.group(1))
+
+    neue_nummer = bisherige_nummer + 1
+    build_datum = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    git_commit = "unknown"
+    try:
+        res = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            git_commit = res.stdout.strip()
+    except Exception:
+        pass
+
+    inhalt = (
+        "# Automatisch generierte Build-Informationen (wird durch build_docs.py beim Build aktualisiert)\n"
+        f'VERSION = "{version}"\n'
+        f"BUILD_NUMBER = {neue_nummer}\n"
+        f'BUILD_DATE = "{build_datum}"\n'
+        f'GIT_COMMIT = "{git_commit}"\n'
+        'BUILD_LABEL = f"v{VERSION} | Build #{BUILD_NUMBER} ({BUILD_DATE}, {GIT_COMMIT})"\n'
+    )
+    with open(pfad, "w", encoding="utf-8") as f:
+        f.write(inhalt)
+
+    label = f"v{version} | Build #{neue_nummer} ({build_datum}, {git_commit})"
+    print(f"Build-Info aktualisiert: {label}")
+    return label
+
+
+def erstelle_readme_pdf(build_label="", ziel_pfad=os.path.join("dist", "README.pdf")):
     """Konvertiert USER_GUIDE.md (Anwender-Handbuch) und DISCLAIMER.md in eine formatierte PDF-Datei für den dist-Ordner."""
     os.makedirs(os.path.dirname(ziel_pfad) or ".", exist_ok=True)
 
@@ -15,6 +65,8 @@ def erstelle_readme_pdf(ziel_pfad=os.path.join("dist", "README.pdf")):
         with open(handbuch_datei, "r", encoding="utf-8") as f:
             handbuch_text = re.sub(r"[\U00010000-\U0010ffff]", "", f.read())
             handbuch_text = handbuch_text.replace("$\\ge 0\\,\\%$", ">= 0 %")
+            if build_label:
+                handbuch_text = f"*{build_label}*\n\n" + handbuch_text
             md_teile.append(handbuch_text)
     if os.path.exists("DISCLAIMER.md"):
         with open("DISCLAIMER.md", "r", encoding="utf-8") as f:
@@ -61,5 +113,5 @@ def erstelle_readme_pdf(ziel_pfad=os.path.join("dist", "README.pdf")):
 
 
 if __name__ == "__main__":
-    erstelle_readme_pdf()
-
+    aktuelles_label = aktualisiere_build_info()
+    erstelle_readme_pdf(aktuelles_label)

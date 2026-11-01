@@ -4,12 +4,12 @@ echo --- SYNCHRONISIERE UMGEBUNG MIT UV ---
 uv sync
 
 echo.
-echo --- ERSTELLE EXE MIT PYINSTALLER (VIA UV) ---
-uv run pyinstaller --noconfirm PortfolioKorrelationsanalyse.spec
+echo --- AKTUALISIERE BUILD-NUMMER UND ERSTELLE README.PDF ---
+uv run python build_docs.py
 
 echo.
-echo --- ERSTELLE README.PDF IM DIST-ORDNER ---
-uv run python build_docs.py
+echo --- ERSTELLE EXE MIT PYINSTALLER (VIA UV) ---
+uv run pyinstaller --noconfirm PortfolioKorrelationsanalyse.spec
 
 echo.
 echo --- AUFRÄUMEN ---

@@ -18,6 +18,13 @@ try:
 except ImportError:
     plt = None
 
+try:
+    from build_info import BUILD_LABEL, VERSION, BUILD_NUMBER
+except ImportError:
+    VERSION = "0.1.0"
+    BUILD_NUMBER = 0
+    BUILD_LABEL = f"v{VERSION} (Dev)"
+
 # --- KONFIGURATION ---
 XML_DATEI_PFAD = 'pf_daten.xml'  # Standard-Pfad zu Ihrer Portfolio Performance XML-Datei
 CACHE_VERSION = 1
@@ -884,7 +891,7 @@ def generiere_html_report(report_daten, datei_pfad):
         <strong style="color: var(--text); display: block; margin-bottom: 6px;">⚖️ Wichtiger Hinweis / Haftungsausschluss (Disclaimer)</strong>
         Dieser Bericht sowie alle darin enthaltenen Daten, Kennzahlen und Charts dienen ausschließlich allgemeinen Informations-, Bildungs- und privaten Analysezwecken. Sie stellen <strong>keine Anlageberatung, keine Finanzanalyse und keine Empfehlung oder Aufforderung zum Kauf, Halten oder Verkauf von Wertpapieren</strong> dar. Alle Auswertungen basieren auf historischen Vergangenheitsdaten aus Drittquellen; vergangene Wertentwicklungen und historische Korrelationen sind kein verlässlicher Indikator für zukünftige Entwicklungen (insbesondere in Marktstressphasen können sich Korrelationen stark verändern). Für die Richtigkeit, Vollständigkeit oder Aktualität der Daten und Berechnungen wird keine Gewähr übernommen. Jede Anlageentscheidung erfolgt auf eigenes Risiko und in alleiniger Verantwortung des Lesers; eine Haftung für finanzielle Verluste ist ausgeschlossen. Der Ersteller hält möglicherweise selbst Positionen in den genannten Wertpapieren.
         <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-            <span>Erstellt mit <strong>Portfolio Korrelationsanalyse</strong></span>
+            <span>Erstellt mit <strong>Portfolio Korrelationsanalyse</strong> ({esc(BUILD_LABEL)})</span>
             <a href="{GITHUB_REPO_URL}" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: none; font-weight: 500;">🔗 GitHub Repository: alos-source/portfolio_correllation</a>
         </div>
     </footer>
@@ -1298,7 +1305,7 @@ def filter_positive_performance(df, tickers):
 def starte_gui():
     """Startet die Tkinter-GUI mit XML/Cache-Lader sowie CSV-Metadaten- und Sektor-Filterung."""
     root = tk.Tk()
-    root.title("Portfolio Korrelationsanalyse (XML/Cache + CSV-Metadaten)")
+    root.title(f"Portfolio Korrelationsanalyse – v{VERSION} (Build #{BUILD_NUMBER})")
     root.geometry("1040x740")
     root.minsize(860, 600)
 
@@ -1677,7 +1684,7 @@ def starte_gui():
 
     lbl_disclaimer_hint = tk.Label(
         frame_footer,
-        text="Hinweis: Nur zu Informationszwecken – keine Anlageberatung.",
+        text=f"{BUILD_LABEL}  •  Hinweis: Nur zu Informationszwecken – keine Anlageberatung.",
         fg="gray",
         font=("Segoe UI", 8),
     )
