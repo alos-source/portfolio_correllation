@@ -46,3 +46,7 @@ uv run pyinstaller --noconfirm PortfolioKorrelationsanalyse.spec
 ```
 
 The standalone Windows executable will be generated at `dist/PortfolioKorrelationsanalyse.exe`.
+
+## Documentation
+
+- See [SPECIFICATIONS.md](SPECIFICATIONS.md) for detailed functional, mathematical, and technical specifications.
