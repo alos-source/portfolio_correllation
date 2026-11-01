@@ -373,26 +373,26 @@ def gui_korrelation_analyse(
 
     # Listen füllen
     listbox_top.delete(0, tk.END)
-    ausgabe_widget.insert(tk.END, f"🚀 TOP {anzahl} HÖCHSTE KORRELATIONEN (Diversifikation niedrig):\n")
+    ausgabe_widget.insert(tk.END, f"📈 HÖCHSTE KORRELATION (GLEICHLAUF – Top {anzahl}, Diversifikation niedrig):\n")
     for t, v in top_korrelation.items():
         name = ticker_to_name_map.get(t, t)
         perf = berechne_performance(df_temp_basis, t)
         perf_str = f"{perf:+.2f}%" if perf is not None else "n/a"
         meta_str = format_meta_info(t, csv_metadata)
         sektor_kurz = f" [{csv_metadata[t]['sektor']}]" if (csv_metadata and t in csv_metadata) else ""
-        listbox_top.insert(tk.END, f"{name} ({t}) | Korr: {v:.2f}{sektor_kurz}")
-        ausgabe_widget.insert(tk.END, f"• {name} ({t}): Korr={v:.4f}, Perf={perf_str}{meta_str}\n")
+        listbox_top.insert(tk.END, f"{name} ({t}) | Korr: {v:+.2f}{sektor_kurz}")
+        ausgabe_widget.insert(tk.END, f"• {name} ({t}): Korr={v:+.4f}, Perf={perf_str}{meta_str}\n")
 
     listbox_flop.delete(0, tk.END)
-    ausgabe_widget.insert(tk.END, f"\n🛡️ TOP {anzahl} NIEDRIGSTE / NEGATIVE KORRELATIONEN (Diversifikation hoch):\n")
+    ausgabe_widget.insert(tk.END, f"\n🛡️ NIEDRIGSTE / NEGATIVE KORRELATION (DIVERSIFIKATION – Top {anzahl}):\n")
     for t, v in flop_korrelation.items():
         name = ticker_to_name_map.get(t, t)
         perf = berechne_performance(df_temp_basis, t)
         perf_str = f"{perf:+.2f}%" if perf is not None else "n/a"
         meta_str = format_meta_info(t, csv_metadata)
         sektor_kurz = f" [{csv_metadata[t]['sektor']}]" if (csv_metadata and t in csv_metadata) else ""
-        listbox_flop.insert(tk.END, f"{name} ({t}) | Korr: {v:.2f}{sektor_kurz}")
-        ausgabe_widget.insert(tk.END, f"• {name} ({t}): Korr={v:.4f}, Perf={perf_str}{meta_str}\n")
+        listbox_flop.insert(tk.END, f"{name} ({t}) | Korr: {v:+.2f}{sektor_kurz}")
+        ausgabe_widget.insert(tk.END, f"• {name} ({t}): Korr={v:+.4f}, Perf={perf_str}{meta_str}\n")
 
     # Abschnitt für neutrale Korrelationen (sortiert nach Nähe zu 0.0)
     neutral_min = -0.15
@@ -861,13 +861,13 @@ def generiere_html_report(report_daten, datei_pfad):
 
     <div class="grid-2col">
         <div class="section-card">
-            <div class="section-title">🛡️ Top {report_daten['anzahl']} Niedrigste / Negative Korrelationen</div>
-            <div class="section-sub">Hohes Diversifikationspotenzial gegenüber {esc(report_daten['basis_name'])} (Klick auf Spaltenkopf sortiert, Operatoren wie <code>&gt;0</code> oder <code>&lt;-10</code> filtern Zahlen)</div>
+            <div class="section-title">🛡️ Niedrigste / Negative Korrelation (Diversifikation – Top {report_daten['anzahl']})</div>
+            <div class="section-sub">Gegenläufige bzw. gering korrelierte Entwicklung zu {esc(report_daten['basis_name'])} (Klick auf Spaltenkopf sortiert, Operatoren wie <code>&gt;0</code> oder <code>&lt;-10</code> filtern Zahlen)</div>
             {baue_tabelle(report_daten['flop_rows'], 'Keine Werte gefunden.', 'tbl-flop')}
         </div>
 
         <div class="section-card">
-            <div class="section-title">🚀 Top {report_daten['anzahl']} Höchste Korrelationen</div>
+            <div class="section-title">📈 Höchste Korrelation (Gleichlauf – Top {report_daten['anzahl']})</div>
             <div class="section-sub">Gleichlaufende Entwicklung / niedrige Diversifikation (Klick auf Spaltenkopf sortiert)</div>
             {baue_tabelle(report_daten['top_rows'], 'Keine Werte gefunden.', 'tbl-top')}
         </div>
@@ -1294,6 +1294,8 @@ def starte_gui():
     """Startet die Tkinter-GUI mit XML/Cache-Lader sowie CSV-Metadaten- und Sektor-Filterung."""
     root = tk.Tk()
     root.title("Portfolio Korrelationsanalyse (XML/Cache + CSV-Metadaten)")
+    root.geometry("1040x740")
+    root.minsize(860, 600)
 
     # App-State
     state = {
@@ -1467,7 +1469,7 @@ def starte_gui():
     combo_methode.set('Tagesrenditen (pct_change)')
 
     # --- Zeile 5: Anzahl Ergebnisse & Sektor-Filter ---
-    tk.Label(root, text="Anzahl Top/Flop:").grid(row=5, column=0, sticky="w", padx=5, pady=5)
+    tk.Label(root, text="Anzahl je Liste:").grid(row=5, column=0, sticky="w", padx=5, pady=5)
     rahmen_anzahl_sektor = tk.Frame(root)
     rahmen_anzahl_sektor.grid(row=5, column=1, columnspan=3, sticky="w", padx=5, pady=5)
 
@@ -1601,23 +1603,72 @@ def starte_gui():
     btn_export_html = tk.Button(root, text="HTML-Report exportieren", state="disabled", command=exportiere_html)
     btn_export_html.grid(row=3, column=2, columnspan=2, padx=5, pady=5, sticky="we")
 
-    # --- Zeile 7 & 8: Listen für die Ergebnisse ---
-    tk.Label(root, text="Top-Korrelationen (Klick öffnet Chart):").grid(row=7, column=0, columnspan=2, sticky="w", padx=5)
-    listbox_top = tk.Listbox(root, width=50, height=10)
-    listbox_top.grid(row=8, column=0, columnspan=2, padx=5, pady=5, sticky="we")
+    # --- Zeile 7: Symmetrischer 50/50 Container für beide Korrelations-Listen ---
+    rahmen_listen = tk.Frame(root)
+    rahmen_listen.grid(row=7, column=0, columnspan=4, padx=5, pady=5, sticky="nsew")
+    rahmen_listen.grid_columnconfigure(0, weight=1, uniform="korr_listen")
+    rahmen_listen.grid_columnconfigure(1, weight=1, uniform="korr_listen")
+    rahmen_listen.grid_rowconfigure(1, weight=1)
+
+    # Linke Liste: Höchste Korrelation (Gleichlauf)
+    tk.Label(
+        rahmen_listen,
+        text="📈 Höchste Korrelation – Gleichlauf (Klick öffnet Chart):",
+        font=("Segoe UI", 9, "bold"),
+    ).grid(row=0, column=0, sticky="w", padx=(0, 6), pady=(0, 3))
+
+    frame_top_box = tk.Frame(rahmen_listen)
+    frame_top_box.grid(row=1, column=0, sticky="nsew", padx=(0, 6))
+    frame_top_box.grid_columnconfigure(0, weight=1)
+    frame_top_box.grid_rowconfigure(0, weight=1)
+
+    listbox_top = tk.Listbox(frame_top_box, height=10, exportselection=False)
+    scroll_top_y = ttk.Scrollbar(frame_top_box, orient="vertical", command=listbox_top.yview)
+    scroll_top_x = ttk.Scrollbar(frame_top_box, orient="horizontal", command=listbox_top.xview)
+    listbox_top.config(yscrollcommand=scroll_top_y.set, xscrollcommand=scroll_top_x.set)
+    listbox_top.grid(row=0, column=0, sticky="nsew")
+    scroll_top_y.grid(row=0, column=1, sticky="ns")
+    scroll_top_x.grid(row=1, column=0, sticky="ew")
     listbox_top.bind('<<ListboxSelect>>', lambda e: zeige_chart(listbox_top))
 
-    tk.Label(root, text="Flop-Korrelationen (Klick öffnet Chart):").grid(row=7, column=2, columnspan=2, sticky="w", padx=5)
-    listbox_flop = tk.Listbox(root, width=50, height=10)
-    listbox_flop.grid(row=8, column=2, columnspan=2, padx=5, pady=5, sticky="we")
+    # Rechte Liste: Niedrigste / Negative Korrelation (Diversifikation)
+    tk.Label(
+        rahmen_listen,
+        text="🛡️ Niedrigste / Negative Korrelation – Diversifikation (Klick öffnet Chart):",
+        font=("Segoe UI", 9, "bold"),
+    ).grid(row=0, column=1, sticky="w", padx=(6, 0), pady=(0, 3))
+
+    frame_flop_box = tk.Frame(rahmen_listen)
+    frame_flop_box.grid(row=1, column=1, sticky="nsew", padx=(6, 0))
+    frame_flop_box.grid_columnconfigure(0, weight=1)
+    frame_flop_box.grid_rowconfigure(0, weight=1)
+
+    listbox_flop = tk.Listbox(frame_flop_box, height=10, exportselection=False)
+    scroll_flop_y = ttk.Scrollbar(frame_flop_box, orient="vertical", command=listbox_flop.yview)
+    scroll_flop_x = ttk.Scrollbar(frame_flop_box, orient="horizontal", command=listbox_flop.xview)
+    listbox_flop.config(yscrollcommand=scroll_flop_y.set, xscrollcommand=scroll_flop_x.set)
+    listbox_flop.grid(row=0, column=0, sticky="nsew")
+    scroll_flop_y.grid(row=0, column=1, sticky="ns")
+    scroll_flop_x.grid(row=1, column=0, sticky="ew")
     listbox_flop.bind('<<ListboxSelect>>', lambda e: zeige_chart(listbox_flop))
 
-    # --- Zeile 9: Textfeld für die detaillierte Ausgabe ---
-    text_ausgabe = tk.Text(root, width=105, height=14)
-    text_ausgabe.grid(row=9, column=0, columnspan=4, padx=5, pady=5, sticky="nsew")
+    # --- Zeile 8: Textfeld für die detaillierte Ausgabe inkl. Scrollbar ---
+    frame_text = tk.Frame(root)
+    frame_text.grid(row=8, column=0, columnspan=4, padx=5, pady=5, sticky="nsew")
+    frame_text.grid_columnconfigure(0, weight=1)
+    frame_text.grid_rowconfigure(0, weight=1)
+
+    text_ausgabe = tk.Text(frame_text, height=13, wrap="none")
+    scroll_text_y = ttk.Scrollbar(frame_text, orient="vertical", command=text_ausgabe.yview)
+    scroll_text_x = ttk.Scrollbar(frame_text, orient="horizontal", command=text_ausgabe.xview)
+    text_ausgabe.config(yscrollcommand=scroll_text_y.set, xscrollcommand=scroll_text_x.set)
+    text_ausgabe.grid(row=0, column=0, sticky="nsew")
+    scroll_text_y.grid(row=0, column=1, sticky="ns")
+    scroll_text_x.grid(row=1, column=0, sticky="ew")
 
     root.grid_columnconfigure(1, weight=1)
-    root.grid_rowconfigure(9, weight=1)
+    root.grid_rowconfigure(7, weight=1)
+    root.grid_rowconfigure(8, weight=1)
 
     root.mainloop()
 
