@@ -21,6 +21,7 @@ except ImportError:
 # --- KONFIGURATION ---
 XML_DATEI_PFAD = 'pf_daten.xml'  # Standard-Pfad zu Ihrer Portfolio Performance XML-Datei
 CACHE_VERSION = 1
+GITHUB_REPO_URL = "https://github.com/alos-source/portfolio_correllation"
 # ---------------------
 
 
@@ -882,6 +883,10 @@ def generiere_html_report(report_daten, datei_pfad):
     <footer style="margin-top: 32px; padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px; background: rgba(30, 41, 59, 0.55); color: var(--muted); font-size: 0.78rem; line-height: 1.55;">
         <strong style="color: var(--text); display: block; margin-bottom: 6px;">⚖️ Wichtiger Hinweis / Haftungsausschluss (Disclaimer)</strong>
         Dieser Bericht sowie alle darin enthaltenen Daten, Kennzahlen und Charts dienen ausschließlich allgemeinen Informations-, Bildungs- und privaten Analysezwecken. Sie stellen <strong>keine Anlageberatung, keine Finanzanalyse und keine Empfehlung oder Aufforderung zum Kauf, Halten oder Verkauf von Wertpapieren</strong> dar. Alle Auswertungen basieren auf historischen Vergangenheitsdaten aus Drittquellen; vergangene Wertentwicklungen und historische Korrelationen sind kein verlässlicher Indikator für zukünftige Entwicklungen (insbesondere in Marktstressphasen können sich Korrelationen stark verändern). Für die Richtigkeit, Vollständigkeit oder Aktualität der Daten und Berechnungen wird keine Gewähr übernommen. Jede Anlageentscheidung erfolgt auf eigenes Risiko und in alleiniger Verantwortung des Lesers; eine Haftung für finanzielle Verluste ist ausgeschlossen. Der Ersteller hält möglicherweise selbst Positionen in den genannten Wertpapieren.
+        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <span>Erstellt mit <strong>Portfolio Korrelationsanalyse</strong></span>
+            <a href="{GITHUB_REPO_URL}" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: none; font-weight: 500;">🔗 GitHub Repository: alos-source/portfolio_correllation</a>
+        </div>
     </footer>
 </div>
 
@@ -1665,6 +1670,28 @@ def starte_gui():
     text_ausgabe.grid(row=0, column=0, sticky="nsew")
     scroll_text_y.grid(row=0, column=1, sticky="ns")
     scroll_text_x.grid(row=1, column=0, sticky="ew")
+
+    # --- Zeile 9: Fußzeile mit Hinweis & klickbarem GitHub-Link ---
+    frame_footer = tk.Frame(root)
+    frame_footer.grid(row=9, column=0, columnspan=4, padx=8, pady=(0, 6), sticky="we")
+
+    lbl_disclaimer_hint = tk.Label(
+        frame_footer,
+        text="Hinweis: Nur zu Informationszwecken – keine Anlageberatung.",
+        fg="gray",
+        font=("Segoe UI", 8),
+    )
+    lbl_disclaimer_hint.pack(side="left")
+
+    lbl_github = tk.Label(
+        frame_footer,
+        text="🔗 GitHub: alos-source/portfolio_correllation",
+        fg="#0066cc",
+        cursor="hand2",
+        font=("Segoe UI", 8, "underline"),
+    )
+    lbl_github.pack(side="right")
+    lbl_github.bind("<Button-1>", lambda e: webbrowser.open(GITHUB_REPO_URL))
 
     root.grid_columnconfigure(1, weight=1)
     root.grid_rowconfigure(7, weight=1)
